@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.hashers import make_password
 
 # Create your models here.
 
@@ -10,3 +11,9 @@ class Student(models.Model):
     last_name = models.CharField(max_length=100)
     bottle_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+    def save(self, *args, **kwargs):
+        # Hash password before saving
+        self.password = make_password(self.password)
+        super().save(*args, **kwargs)

@@ -1,10 +1,14 @@
-# SBVM_app/urls.py
-
 from django.urls import path
-from rest_framework.routers import DefaultRouter
-from .views import StudentViewSet  # Or your actual view
+from .views import (
+    get_all_students,
+    add_student,
+    student_detail,
+    student_login,
+)
 
-router = DefaultRouter()
-router.register(r'students', StudentViewSet)  # Or another route name
-
-urlpatterns = router.urls
+urlpatterns = [
+    path('students/', get_all_students),
+    path('students/add/', add_student),  
+    path('students/<int:id>/', student_detail),
+    path('login/', student_login), 
+]
