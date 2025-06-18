@@ -60,15 +60,22 @@ def student_detail(request, id):
 @api_view(['POST'])
 def student_login(request):
     serializer = LoginSerializer(data=request.data)
-    if serializer.is_valid():
-        student_id = serializer.validated_data['student_id']
-        password = serializer.validated_data['password']
-        try:
-            student = Student.objects.get(student_id=student_id)
-            if check_password(password, student.password):
-                return Response({'message': 'Login successful', 'student_id': student.student_id})
-            else:
-                return Response({'message': 'Invalid password'}, status=status.HTTP_401_UNAUTHORIZED)
-        except Student.DoesNotExist:
-            return Response({'message': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    student_id = serializer.validated_data['student_id']
+    password = serializer.validated_data['password']
+
+    try:
+        student = Student.objects.get(student_id=student_id)
+    except Student.DoesNotExist:
+        return Response({'message': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not check_password(password, student.password):
+        return Response({'message': 'Invalid password'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    return Response({
+        'message': 'Login successful',
+        'student_id': student.student_id
+    })
