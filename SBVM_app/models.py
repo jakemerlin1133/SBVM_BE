@@ -11,3 +11,11 @@ class Student(models.Model):
     last_name = models.CharField(max_length=100)
     bottle_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class StudentToken(models.Model):
+    student = models.OneToOneField(Student, on_delete=models.CASCADE)
+    token = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return f"{self.student.student_id} - Token"

@@ -4,6 +4,7 @@ from .views import (
     add_student,
     student_detail,
     student_login,
+    student_logout
 )
 
 urlpatterns = [
@@ -11,4 +12,5 @@ urlpatterns = [
     path('students/add/', add_student),  
     path('students/<int:id>/', student_detail),
     path('students/login/', student_login), 
+    path('students/logout/', student_logout),
 ]

@@ -4,6 +4,10 @@ from rest_framework import status
 from django.contrib.auth.hashers import check_password, make_password
 from .models import Student
 from .serializers import LoginSerializer, StudentSerializer
+from rest_framework.authtoken.models import Token
+
+import secrets
+from .models import StudentToken
 
 
 # --- GET ALL Students View ---
@@ -62,7 +66,11 @@ def student_login(request):
     serializer = LoginSerializer(data=request.data)
 
     if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            'message': 'Invalid input',
+            'errors': serializer.errors,
+            'status_code': 400
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     student_id = serializer.validated_data['student_id']
     password = serializer.validated_data['password']
@@ -70,12 +78,74 @@ def student_login(request):
     try:
         student = Student.objects.get(student_id=student_id)
     except Student.DoesNotExist:
-        return Response({'message': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({
+            'message': 'Student not found',
+            'status_code': 404
+        }, status=status.HTTP_404_NOT_FOUND)
 
     if not check_password(password, student.password):
-        return Response({'message': 'Invalid password'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({
+            'message': 'Invalid password',
+            'status_code': 401
+        }, status=status.HTTP_401_UNAUTHORIZED)
+
+    # Set is_active to True
+    student.is_active = True
+    student.save()
+
+    # Generate or retrieve token manually
+    token_obj, created = StudentToken.objects.get_or_create(student=student)
+
+    if not created:
+        token = token_obj.token
+    else:
+        token = secrets.token_hex(16)
+        token_obj.token = token
+        token_obj.save()
 
     return Response({
         'message': 'Login successful',
-        'student_id': student.student_id
-    })
+        'student_id': student.student_id,
+        'token': token,
+        'status_code': 200
+    }, status=status.HTTP_200_OK)
+
+
+
+# --- LOGOUT ---
+@api_view(['POST'])
+def student_logout(request):
+    student_id = request.data.get('student_id')
+
+    if not student_id:
+        return Response({
+            'message': 'Student ID is required',
+            'status_code': 400
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        student = Student.objects.get(student_id=student_id)
+    except Student.DoesNotExist:
+        return Response({
+            'message': 'Student not found',
+            'status_code': 404
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    # Set student as inactive
+    student.is_active = False
+    student.save()
+
+    # Remove token if it exists
+    try:
+        token = StudentToken.objects.get(student=student)
+        token.delete()
+        token_deleted = True
+    except StudentToken.DoesNotExist:
+        token_deleted = False
+
+    return Response({
+        'message': 'Logout successful',
+        'student_id': student.student_id,
+        'token_deleted': token_deleted,
+        'status_code': 200
+    }, status=status.HTTP_200_OK)
